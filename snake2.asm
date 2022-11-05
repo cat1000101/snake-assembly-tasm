@@ -3,8 +3,7 @@ MODEL small
 STACK 100h
 DATASEG
 ; --------------------------
-; Your variables here
-dir db 0
+dir db 'a'
 RandomValue dw 0
 snakel dw 3
 check db 0
@@ -12,11 +11,45 @@ snake dw 2000,2002,2004
 dw 2000 dup(?)
 ; --------------------------
 CODESEG
-;---------------------------
+;========================================
+proc delay
+	push cx
+;----------------------
+	mov cx,0ffffh
+lop1:
+	push cx
+	mov cx,10
+lop2:
+	loop lop2
+	pop cx
+	loop lop1
+;----------------------
+	pop cx
+	ret
+endp delay
+;========================================
+proc clear
+	push bx
+	push ax
+;----------------------
+	xor bx,bx
+	mov ah,00
+	mov al,' '
+clear_loop:
+	mov [es:bx],ax
+	add bx,2
+	cmp bx,4000
+	jnz clear_loop
+;----------------------
+	pop ax
+	pop bx
+	ret
+endp clear
+;========================================
 proc random
 	push ax
 	push es
-
+;----------------------
 	mov ax,40h
 	mov es,ax
 	mov ax,[es:6ch]
@@ -28,8 +61,7 @@ proc random
 	mov ah,10
 	mov bx,[RandomValue]
 	mov [es:bx],ax
-	
-	
+;----------------------
 	pop es
 	pop ax
 	ret
@@ -42,7 +74,6 @@ proc draw
 	push cx
 ;----------------------
 	mov cx,[snakel]
-	xor di,di
 	mov bx,offset snake
 	mov di,[bx+6]
 	mov ah,0
@@ -50,11 +81,11 @@ proc draw
 	mov [es:di],ax
 	mov ah,200
 	mov al,'*'
-whytho:
+draw_loop:
 	mov di,[bx]
 	add bx,2
 	mov [es:di],ax
-	loop whytho
+	loop draw_loop
 ;----------------------
 	pop cx
 	pop di
@@ -68,32 +99,24 @@ proc next
 	mov bp,sp
 
 	push bx
-	push dx
 	push di
 	push cx
 	push ax
-
+;----------------------
 	mov cx,[snakel]
-	xor dx,dx
-	mov ax,cx
-	mov bx,2
-	div bx
-	add ax,dx
-	mov cx,ax
+	inc cx ;to have the last value to clear it later
 	mov ax,[bp+4]
 	mov di, offset snake
 nlxt:
 	mov bx,[di]
 	mov [di],ax
-	mov ax,[di+2]
-	mov [di+2],bx
-	add di,4
+	mov ax,bx
+	add di,2
 	loop nlxt
-
+;----------------------
 	pop ax
 	pop cx
 	pop di
-	pop dx
 	pop bx
 	pop bp
 	ret 2
@@ -102,10 +125,12 @@ endp next
 proc w
 	push ax
 	push bx
-	
+;----------------------
 	mov ax,[snake]
-	add ax,(1*80)*2
+	sub ax,(1*80)*2
 	
+	call w_check
+
 	push ax
 	call cheeck
 	pop ax
@@ -118,8 +143,7 @@ proc w
 	call next
 	call draw
 ew:
-	mov [check],0
-
+;----------------------
 	pop bx
 	pop ax
 	ret
@@ -128,9 +152,11 @@ endp w
 proc s
 	push ax
 	push bx
-	
+;----------------------
 	mov ax,[snake]
-	sub ax,(1*80)*2
+	add ax,(1*80)*2
+
+	call s_check
 
 	push ax
 	call cheeck
@@ -144,8 +170,7 @@ proc s
 	call next
 	call draw
 ees:
-	mov [check],0
-
+;----------------------
 	pop bx
 	pop ax
 	ret
@@ -154,9 +179,11 @@ endp s
 proc a
 	push ax
 	push bx
-	
+;----------------------
 	mov ax,[snake]
 	sub ax,2
+
+	call a_check
 	
 	push ax
 	call cheeck
@@ -169,8 +196,7 @@ proc a
 	call next
 	call draw
 ea:
-	mov [check],0
-
+;----------------------
 	pop ax
 	pop bx
 	ret
@@ -179,9 +205,11 @@ endp a
 proc d
 	push ax
 	push bx
-	
+;----------------------
 	mov ax,[snake]
 	add ax,2
+
+	call d_check
 
 	push ax
 	call cheeck
@@ -195,8 +223,7 @@ proc d
 	call next
 	call draw
 ed:
-	mov [check],0
-
+;----------------------
 	pop ax
 	pop bx
 	ret
@@ -204,50 +231,47 @@ endp d
 ;========================================
 proc w_check
 	push ax
-
+;----------------------
 	mov ax,[snake]
 	cmp ax,160
-	jb ecw
+	jnb ecw
 	mov [check],1
 ecw:
-
+;----------------------
 	pop ax
 	ret
 endp w_check
 ;========================================
 proc s_check
 	push ax
-
+;----------------------
 	mov ax,[snake]
 	cmp ax,3840
-	ja ecs
+	jna ecs
 	mov [check],1
 ecs:
-
+;----------------------
 	pop ax
 	ret 
 endp s_check
 ;========================================
 proc a_check
-	push di
 	push bx
 	push ax
 	push dx
-	
-	mov di,[snake]
+;----------------------	
+	mov ax,[snake]
 	xor dx,dx
-	mov ax,di
 	mov bx,160
 	div bx
 	cmp dx,0
-	jz eca
+	jnz eca
 	mov [check],1
 eca:
-
+;----------------------
 	pop dx
 	pop ax
 	pop bx
-	pop di
 	ret
 endp a_check
 ;========================================
@@ -255,19 +279,16 @@ proc d_check
 	push ax
 	push bx
 	push dx
-	push di
-	
-	mov di,[snake]
+;----------------------	
+	mov ax,[snake]
 	xor dx,dx
-	mov ax,di
 	mov bx,160
 	div bx
 	cmp dx,158
-	jz ecd
+	jnz ecd
 	mov [check],1
 ecd:
-	
-	pop di
+;----------------------	
 	pop dx
 	pop bx
 	pop ax
@@ -286,13 +307,23 @@ mov bp,sp
 ;----------------------
 	mov ax,[bp+4]
 	mov cx,[snakel]
-	
+	mov di,offset snake
+
+check_loop:
+	mov bx,[di]
+	cmp ax,bx
+	jnz ok_check
+	mov [check],1
+ok_check:
+	add di,2
+	loop check_loop
 
 ;----------------------
 	pop dx
 	pop bx
 	pop di
 	pop ax
+	pop bp
 	ret
 endp cheeck
 ;--------------------------
@@ -301,29 +332,11 @@ start:
 	mov ds, ax
 	mov ax,0b800h
 	mov es,ax
-	
-	mov cx,[snakel]
-
-	xor bx,bx
-	mov ah,00
-	mov al,' '
-cller:
-	mov [es:bx],ax
-	add bx,2
-	cmp bx,4000
-	jnz cller
-	
+call clear
 call draw
-lop:
 
-	mov cx,0ffffh
-lop1:
-	push cx
-	mov cx,5
-lop2:
-	loop lop2
-	pop cx
-	loop lop1
+lop:
+	call delay
 
 	mov al,[dir]
 	mov ah,1
@@ -334,22 +347,26 @@ lop2:
 noinput:
 	mov [dir],al
 
+	mov bl,[check]
+	cmp bl,1
+	jz exit
+
 	cmp al,'w'
-	jnz ww
+	jnz not_w
 	call w
-ww:
+not_w:
 	cmp al,'a'
-	jnz wa
+	jnz not_a
 	call a
-wa:
+not_a:
 	cmp al,'s'
-	jnz ws
+	jnz not_s
 	call s
-ws:
+not_s:
 	cmp al,'d'
-	jnz wd
+	jnz not_d
 	call d
-wd:
+not_d:
 	cmp al,27
 	jz exit
 	jmp lop
