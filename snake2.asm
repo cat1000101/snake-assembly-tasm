@@ -33,7 +33,7 @@ clear_loop:
 	ret
 endp clear
 ;========================================
-
+;i love github
 ;========================================
 proc delay
 ;loop for to much times
