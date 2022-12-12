@@ -5,6 +5,7 @@ to run the snake you need dosbox(https://www.dosbox.com/download.php?main=1) you
 mount c: c:\
 c:
 cd tasm
-tasm /zi snake2.asm
-tlink /v snake2.obj
-snake2
+cycles = max
+tasm /zi snake.asm
+tlink /v snake.obj
+snake
